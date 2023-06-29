@@ -105,6 +105,7 @@ void SimpSolver::releaseVar(Lit l)
 
 lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 {
+
     vec<Var> extra_frozen;
     lbool    result = l_True;
 
@@ -117,6 +118,8 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 
             // If an assumption has been eliminated, remember it.
             assert(!isEliminated(v));
+        printf("Still eliminating\n");
+        fflush(stdout);
 
             if (!frozen[v]){
                 // Freeze and store.
@@ -126,7 +129,7 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 
         result = lbool(eliminate(turn_off_simp));
     }
-
+    printf("Done here\n");
     if (result == l_True)
         result = Solver::solve_();
     else if (verbosity >= 1)

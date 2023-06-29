@@ -133,6 +133,8 @@ int main(int argc, char** argv)
 
         if (solve){
             vec<Lit> dummy;
+                printf("What up 1\n");
+                getchar();
             ret = S.solveLimited(dummy);
         }else if (S.verbosity > 0)
             printf("===============================================================================\n");

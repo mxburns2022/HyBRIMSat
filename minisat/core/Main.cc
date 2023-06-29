@@ -54,10 +54,13 @@ static void SIGINT_exit(int) {
 
 int main(int argc, char** argv)
 {
+    printf("REEE\n");
+    fflush(stdout);
     try {
         setUsageHelp("USAGE: %s [options] <input-file> <result-output-file>\n\n  where input may be either in plain or gzipped DIMACS.\n");
         setX86FPUPrecision();
 
+        printf("REEE\n");
         // Extra options:
         //
         IntOption    verb   ("MAIN", "verb",   "Verbosity level (0=silent, 1=some, 2=more).", 1, IntRange(0, 2));
@@ -89,7 +92,7 @@ int main(int argc, char** argv)
             printf("ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
         
         if (S.verbosity > 0){
-            printf("============================[ Problem Statistics ]=============================\n");
+            printf("==================sdfsdf==========[ Problem Statistics ]=============================\n");
             printf("|                                                                             |\n"); }
         
         parse_DIMACS(in, S, (bool)strictp);

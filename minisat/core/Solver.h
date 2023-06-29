@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "minisat/mtl/IntMap.h"
 #include "minisat/utils/Options.h"
 #include "minisat/core/SolverTypes.h"
+#include "minisat/core/HyQSat.h"
 
 
 namespace Minisat {
@@ -236,6 +237,7 @@ protected:
     int64_t             propagation_budget; // -1 means no budget.
     bool                asynch_interrupt;
 
+    BRIMManager         manager;
     // Main internal methods:
     //
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.

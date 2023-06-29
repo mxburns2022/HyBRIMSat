@@ -306,7 +306,8 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
         Clause& c = ca[confl];
-
+        printf("REEE\n");
+        manager.inc_conflict(confl);
         if (c.learnt())
             claBumpActivity(c);
 
@@ -706,7 +707,6 @@ lbool Solver::search(int nof_conflicts)
     int         conflictC = 0;
     vec<Lit>    learnt_clause;
     starts++;
-
     for (;;){
         CRef confl = propagate();
         if (confl != CRef_Undef){
@@ -726,6 +726,7 @@ lbool Solver::search(int nof_conflicts)
                 attachClause(cr);
                 claBumpActivity(ca[cr]);
                 uncheckedEnqueue(learnt_clause[0], cr);
+                manager.add_clause(ca, cr);
             }
 
             varDecayActivity();
@@ -789,6 +790,8 @@ lbool Solver::search(int nof_conflicts)
             newDecisionLevel();
             uncheckedEnqueue(next);
         }
+
+        manager.select_clauses(ca);
     }
 }
 
@@ -841,7 +844,7 @@ lbool Solver::solve_()
     model.clear();
     conflict.clear();
     if (!ok) return l_False;
-
+    manager = BRIMManager(clauses, ca, unsigned(num_clauses), unsigned(nVars()), 170, static_cast<int>(INT_MAX*random_seed));
     solves++;
 
     max_learnts = nClauses() * learntsize_factor;
