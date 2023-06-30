@@ -129,7 +129,6 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 
         result = lbool(eliminate(turn_off_simp));
     }
-    printf("Done here\n");
     if (result == l_True)
         result = Solver::solve_();
     else if (verbosity >= 1)

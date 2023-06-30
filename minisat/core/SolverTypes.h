@@ -36,7 +36,7 @@ namespace Minisat {
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
 
-
+class BRIMManager;
 // NOTE! Variables are just integers. No abstraction here. They should be chosen from 0..N,
 // so that they can be used as array indices.
 
@@ -336,7 +336,7 @@ class OccLists
         occs(_index), 
         dirty(_index), 
         deleted(d){}
-    
+    friend BRIMManager;
     void  init      (const K& idx){ occs.reserve(idx); occs[idx].clear(); dirty.reserve(idx, 0); }
     Vec&  operator[](const K& idx){ return occs[idx]; }
     Vec&  lookup    (const K& idx){ if (dirty[idx]) clean(idx); return occs[idx]; }

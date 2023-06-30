@@ -24,6 +24,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "minisat/mtl/Sort.h"
 #include "minisat/utils/System.h"
 #include "minisat/core/Solver.h"
+#include "minisat/core/HyQSat.h"
+#include <iostream>
 
 using namespace Minisat;
 
@@ -306,8 +308,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
         Clause& c = ca[confl];
-        printf("REEE\n");
-        manager.inc_conflict(confl);
+        manager->inc_conflict(confl); // log the increase in conflict
         if (c.learnt())
             claBumpActivity(c);
 
@@ -726,7 +727,7 @@ lbool Solver::search(int nof_conflicts)
                 attachClause(cr);
                 claBumpActivity(ca[cr]);
                 uncheckedEnqueue(learnt_clause[0], cr);
-                manager.add_clause(ca, cr);
+                manager->add_clause(ca, cr); // add a new clause
             }
 
             varDecayActivity();
@@ -761,6 +762,7 @@ lbool Solver::search(int nof_conflicts)
                 reduceDB();
 
             Lit next = lit_Undef;
+
             while (decisionLevel() < assumptions.size()){
                 // Perform user provided assumption:
                 Lit p = assumptions[decisionLevel()];
@@ -779,8 +781,10 @@ lbool Solver::search(int nof_conflicts)
             if (next == lit_Undef){
                 // New variable decision:
                 decisions++;
-                next = pickBranchLit();
-
+                next = manager->get_decision_variable(); // HyQSat Scenario 4: prioritize literals from UNSAT clause
+                if (next == lit_Undef) {
+                    next = pickBranchLit();
+                }
                 if (next == lit_Undef)
                     // Model found:
                     return l_True;
@@ -790,8 +794,36 @@ lbool Solver::search(int nof_conflicts)
             newDecisionLevel();
             uncheckedEnqueue(next);
         }
+        
+        manager->select_clauses(ca, this);// Select BFS clauses to pass to BRIM
+        manager->call_brim(nVars()); // call BRIM (with current variable count)
+        // If entire problem was mapped and found to be SAT
+        if (manager->get_backend_type() == Scenario::SAT) {
+            // get assignment and variable label map
+            std::vector<int> varmap = manager->get_invmap();
+            std::vector<int> assignment = manager->get_assignment();
+            newDecisionLevel();
+            // assign all variables according to BRIM assignment
+            for (size_t i = 0; i < assignment.size(); i++) {
+                Lit l = assignment[i] ? mkLit(varmap[i]) : ~mkLit(varmap[i]);
+                uncheckedEnqueue(l);
+            }
+            // Formula SAT: return True
+            return l_True;
 
-        manager.select_clauses(ca);
+        // If part of problem was mapped and found to be SAT
+        } else if (manager->get_backend_type() == Scenario::NEARSAT) {
+            std::vector<int> varmap = manager->get_invmap();
+            std::vector<int> assignment = manager->get_assignment();
+            // get assignment and variable label map
+            newDecisionLevel();
+            // assign all variables according to BRIM assignment
+            for (size_t i = 0; i < assignment.size(); i++) {
+                Lit l = assignment[i] ? mkLit(varmap[i]) : ~mkLit(varmap[i]);
+                uncheckedEnqueue(l);
+            }
+
+        }
     }
 }
 
@@ -844,7 +876,11 @@ lbool Solver::solve_()
     model.clear();
     conflict.clear();
     if (!ok) return l_False;
-    manager = BRIMManager(clauses, ca, unsigned(num_clauses), unsigned(nVars()), 170, static_cast<int>(INT_MAX*random_seed));
+    std::cout << clauses.size() << std::endl;
+    if (clauses.size()) {
+        // if the problem is not empty (can happen w/ simplification), construct manager
+        manager = new BRIMManager(clauses, ca, unsigned(num_clauses), unsigned(nVars()), 20, (int)random_seed);
+    }
     solves++;
 
     max_learnts = nClauses() * learntsize_factor;
@@ -881,7 +917,9 @@ lbool Solver::solve_()
         for (int i = 0; i < nVars(); i++) model[i] = value(i);
     }else if (status == l_False && conflict.size() == 0)
         ok = false;
-
+    // free memory
+    if (manager != nullptr)
+        delete manager;
     cancelUntil(0);
     return status;
 }
@@ -1020,7 +1058,8 @@ void Solver::relocAll(ClauseAllocator& to)
             for (int j = 0; j < ws.size(); j++)
                 ca.reloc(ws[j].cref, to);
         }
-
+    std::vector<std::pair<CRef,CRef>> coormap;
+    coormap.reserve(learnts.size() + clauses.size());
     // All reasons:
     //
     for (int i = 0; i < trail.size(); i++){
@@ -1039,7 +1078,9 @@ void Solver::relocAll(ClauseAllocator& to)
     int i, j;
     for (i = j = 0; i < learnts.size(); i++)
         if (!isRemoved(learnts[i])){
-            ca.reloc(learnts[i], to);
+            ca.reloc(learnts[i], to); 
+            // add the old, new Clause Ref pair
+            coormap.push_back(std::make_pair(learnts[j], learnts[i]));
             learnts[j++] = learnts[i];
         }
     learnts.shrink(i - j);
@@ -1049,9 +1090,15 @@ void Solver::relocAll(ClauseAllocator& to)
     for (i = j = 0; i < clauses.size(); i++)
         if (!isRemoved(clauses[i])){
             ca.reloc(clauses[i], to);
+            // add the old, new Clause Ref pair
+            coormap.push_back(std::make_pair(clauses[j], clauses[i]));
             clauses[j++] = clauses[i];
         }
     clauses.shrink(i - j);
+
+    // if manager was created, reinitialize the current clause reference assignments
+    if (manager != nullptr)
+        manager->reinitialize_clauses(coormap);
 }
 
 

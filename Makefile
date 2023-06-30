@@ -18,7 +18,7 @@ MINISAT_RELSYM ?= -g
 
 # Sets of compile flags for different build types
 MINISAT_REL    ?= -O3 -D NDEBUG
-MINISAT_DEB    ?= -O3 -D NDEBUG 
+MINISAT_DEB    ?= -O0 -D DEBUG -ggdb -fno-inline-small-functions -g -fno-inline
 MINISAT_PRF    ?= -O3 -D NDEBUG
 MINISAT_FPIC   ?= -fpic
 

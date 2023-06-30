@@ -85,7 +85,6 @@ public:
     void    toDimacs     (const char* file, Lit p);
     void    toDimacs     (const char* file, Lit p, Lit q);
     void    toDimacs     (const char* file, Lit p, Lit q, Lit r);
-    
     // Variable mode:
     // 
     void    setPolarity    (Var v, lbool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
@@ -152,8 +151,6 @@ public:
     uint64_t solves, starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t dec_vars, num_clauses, num_learnts, clauses_literals, learnts_literals, max_literals, tot_literals;
 
-protected:
-
     // Helper structures:
     //
     struct VarData { CRef reason; int level; };
@@ -185,6 +182,7 @@ protected:
         Lit      l;
         ShrinkStackElem(uint32_t _i, Lit _l) : i(_i), l(_l){}
     };
+protected:
 
     // Solver state:
     //
@@ -237,7 +235,7 @@ protected:
     int64_t             propagation_budget; // -1 means no budget.
     bool                asynch_interrupt;
 
-    BRIMManager         manager;
+    BRIMManager*         manager = nullptr;
     // Main internal methods:
     //
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.
@@ -296,6 +294,8 @@ protected:
     // Returns a random integer 0 <= x < size. Seed must never be 0.
     static inline int irand(double& seed, int size) {
         return (int)(drand(seed) * size); }
+    friend BRIMManager;
+
 };
 
 
